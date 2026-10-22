@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostList from '../../components/PostList.astro';
+import { categories } from '../../site';
+import { getPosts } from '../../posts';
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return categories.map((category) => ({ params: { category: category.id }, props: { category, posts: posts.filter((post) => post.data.category === category.id) } }));
+}
+const { category, posts } = Astro.props;
+---
+<BaseLayout title={`${category.name} 笔记`} description={category.description}>
+  <section class="list-width page-section">
+    <a class="muted mb-6 inline-block text-sm hover:underline" href="/categories/">所有分类</a>
+    <h1 class="page-title">{category.name}</h1>
+    <p class="page-intro mb-16">{category.description}<span class="ml-3 text-base">{posts.length} 篇笔记</span></p>
+    <PostList posts={posts} />
+  </section>
+</BaseLayout>

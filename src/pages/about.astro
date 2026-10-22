@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ArticleHeader from '../components/ArticleHeader.astro';
+import Icon from '../components/Icon.astro';
+import { site } from '../site';
+import { readingMinutes } from '../posts';
+const paragraphs = [
+  '你好，我是 hiwz。这里是我的个人博客，存放学习笔记，也记录生活中的点点滴滴。',
+  '我一直想有一个属于自己的网站，把学到的东西、想明白的问题和还没弄懂的疑惑留在这里。于是，我的代码之旅从此开始。',
+  '目前写得最多的是 Java 和后端开发。从语言基础到 Spring、Spring MVC 和 MyBatis，一边学习，一边整理，让知识慢慢变得清晰。',
+  '笔记还只是冰山一角，会在今后继续补充。希望这里能伴随我的成长，也为偶然路过的你提供一点帮助。',
+  '人生只有走出来的美丽，没有等出来的辉煌。',
+];
+---
+<BaseLayout title="关于" description="我是 hiwz，在这里记录学习笔记，也记录生活中的点点滴滴。">
+  <article class="article-page py-8 sm:py-16 lg:py-20">
+    <ArticleHeader title="关于 hiwz" publishedAt="2022-05-29" minutes={readingMinutes(paragraphs.join('\n'))} cover={site.avatar} coverAlt="钢琴前的身影与鱼缸中的游鱼" />
+    <div class="reading-width article-body"><div class="prose prose-lg article-prose">
+      {paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+    </div></div>
+    <div class="reading-width mt-14">
+      <div class="article-end border-t pt-8 text-sm"><a class="inline-flex items-center gap-2" href="/"><Icon name="arrow" size={16} />所有文章</a></div>
+    </div>
+  </article>
+</BaseLayout>

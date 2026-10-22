@@ -1,0 +1,24 @@
+---
+import { formatDate } from '../posts';
+interface Props {
+  title: string;
+  publishedAt?: string;
+  minutes: number;
+  cover?: string;
+  coverAlt?: string;
+}
+const { title, publishedAt, minutes, cover, coverAlt } = Astro.props;
+---
+<header class="article-header">
+  <div class="reading-width article-meta-row mb-4">
+    <p class="article-meta text-base leading-6">
+      {publishedAt && <time class="mr-4" datetime={publishedAt}>{formatDate(publishedAt)}</time>}
+      {' '}<span class="muted">阅读需{minutes}分钟</span>
+    </p>
+    <slot name="tools" />
+  </div>
+  <h1 class="reading-width article-title font-bold">{title}</h1>
+  {cover && <figure class="article-cover">
+    <img src={cover} alt={coverAlt} width="900" height="506" fetchpriority="high" decoding="async" />
+  </figure>}
+</header>

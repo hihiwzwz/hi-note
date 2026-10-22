@@ -1,0 +1,84 @@
+---
+import type { MarkdownHeading } from 'astro';
+import BaseLayout from './BaseLayout.astro';
+import ArticleHeader from '../components/ArticleHeader.astro';
+import Icon from '../components/Icon.astro';
+import { formatDate, readingMinutes, type Post } from '../posts';
+interface Props { post: Post; headings: MarkdownHeading[]; }
+const { post, headings } = Astro.props;
+const toc = headings.filter(({ depth }) => depth === 2 || depth === 3);
+---
+<BaseLayout title={post.data.title} description={post.data.description} image={post.data.cover} article publishedAt={post.data.publishedAt} updatedAt={post.data.updatedAt}>
+  <article class="article-page py-8 sm:py-16 lg:py-20">
+    <ArticleHeader title={post.data.title} publishedAt={post.data.publishedAt} minutes={readingMinutes(post.body)} cover={post.data.cover} coverAlt={post.data.coverAlt}>
+      {toc.length > 0 && <details class="toc" slot="tools">
+        <summary aria-label="文章目录">目录</summary>
+        <nav aria-label="文章目录"><ol>
+          {toc.map((heading) => <li class:list={[heading.depth === 3 && 'ml-4']}><a href={`#${heading.slug}`}>{heading.text}</a></li>)}
+        </ol></nav>
+      </details>}
+    </ArticleHeader>
+    <div class="reading-width article-body"><div class="prose prose-lg article-prose"><slot /></div></div>
+    <footer class="reading-width mt-14">
+      <div class="article-end flex flex-wrap items-center justify-between gap-4 border-t pt-8 text-sm">
+        <a class="inline-flex items-center gap-2" href="/"><Icon name="arrow" size={16} />所有文章</a>
+        {post.data.updatedAt && <span class="muted">最后更新：<time datetime={post.data.updatedAt}>{formatDate(post.data.updatedAt)}</time></span>}
+      </div>
+    </footer>
+  </article>
+</BaseLayout>
+<script>
+  const toc = document.querySelector<HTMLDetailsElement>('.toc');
+  toc?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => { toc.open = false; }));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && toc?.open) {
+      toc.open = false;
+      toc.querySelector('summary')?.focus();
+    }
+  });
+  document.addEventListener('click', (event) => {
+    if (toc?.open && event.target instanceof Node && !toc.contains(event.target)) toc.open = false;
+  });
+  document.querySelectorAll<HTMLElement>('.article-prose pre').forEach((pre) => {
+    const code = pre.querySelector('code');
+    if (!code) return;
+    pre.tabIndex = 0;
+    pre.setAttribute('aria-label', '代码示例，可横向滚动');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-container not-prose';
+    pre.before(wrapper);
+    wrapper.append(pre);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'copy-code';
+    button.textContent = '复制';
+    button.setAttribute('aria-label', '复制代码');
+    const status = document.createElement('span');
+    status.className = 'sr-only';
+    status.setAttribute('role', 'status');
+    wrapper.append(button, status);
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(code.textContent ?? '');
+        button.textContent = '已复制';
+        status.textContent = '代码已复制';
+      } catch {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        selection?.removeAllRanges(); selection?.addRange(range);
+        button.textContent = '已选中';
+        status.textContent = '无法访问剪贴板，已选中代码，请手动复制';
+      }
+      setTimeout(() => { button.textContent = '复制'; status.textContent = ''; }, 2500);
+    });
+  });
+  document.querySelectorAll('.article-prose table').forEach((table) => {
+    const scroll = document.createElement('div');
+    scroll.className = 'table-scroll';
+    scroll.tabIndex = 0;
+    scroll.setAttribute('role', 'region');
+    scroll.setAttribute('aria-label', '表格，可横向滚动');
+    table.before(scroll); scroll.append(table);
+  });
+</script>

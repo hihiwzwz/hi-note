@@ -1,0 +1,108 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import Icon from '../components/Icon.astro';
+import { getPosts } from '../posts';
+const posts = await getPosts();
+---
+<BaseLayout title="搜索" description="在 hiwz 的学习笔记中寻找一个关键词。" noindex>
+  <section class="list-width page-section">
+    <h1 class="page-title">搜索</h1>
+    <p class="page-intro mb-10">找一篇笔记，或一个曾经遇到的问题。</p>
+    <form role="search" action="/search/" method="get" id="search-form">
+      <label class="sr-only" for="search-input">搜索文章</label>
+      <div class="relative">
+        <input class="search-field" id="search-input" type="search" name="q" placeholder="搜索标题、摘要或正文…" autocomplete="off" maxlength="200" aria-describedby="search-status" />
+        <button class="icon-button absolute right-2 top-1/2 -translate-y-1/2" type="submit" aria-label="搜索"><Icon name="search" /></button>
+      </div>
+    </form>
+    <p id="search-status" class="search-status" role="status" aria-live="polite" aria-atomic="true">输入关键词，搜索全部笔记。</p>
+    <button id="search-retry" type="button" class="mb-10 underline underline-offset-4" hidden>重新加载</button>
+    <noscript><p class="muted mb-10">搜索需要启用 JavaScript。你也可以浏览下面的全部文章。</p></noscript>
+    <div id="search-results" class="search-results"><PostList posts={posts} /></div>
+  </section>
+</BaseLayout>
+<script>
+  import { searchPosts, excerpt, type SearchEntry } from '../search';
+  const form = document.querySelector<HTMLFormElement>('#search-form')!;
+  const input = document.querySelector<HTMLInputElement>('#search-input')!;
+  const status = document.querySelector<HTMLElement>('#search-status')!;
+  const results = document.querySelector<HTMLElement>('#search-results')!;
+  const list = results.querySelector('ul');
+  const retry = document.querySelector<HTMLButtonElement>('#search-retry')!;
+  const items = new Map(Array.from(results.querySelectorAll<HTMLElement>('[data-post-id]')).map((item) => [item.dataset.postId!, item]));
+  results.hidden = true;
+  results.dataset.ready = 'true';
+  let indexPromise: Promise<SearchEntry[]> | undefined;
+  let sequence = 0;
+  let timer: ReturnType<typeof setTimeout>;
+
+  function highlight(target: Element, value: string, query: string) {
+    const words = query.split(/\s+/).filter(Boolean).sort((a, b) => b.length - a.length);
+    const pattern = words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    target.replaceChildren();
+    if (!pattern) { target.textContent = value; return; }
+    const regex = new RegExp(pattern, 'giu');
+    let last = 0;
+    for (const match of value.matchAll(regex)) {
+      target.append(document.createTextNode(value.slice(last, match.index)));
+      const mark = document.createElement('mark');
+      mark.textContent = match[0]; target.append(mark);
+      last = match.index! + match[0].length;
+    }
+    target.append(document.createTextNode(value.slice(last)));
+  }
+
+  async function runSearch(updateUrl = true) {
+    const request = ++sequence;
+    const query = input.value.trim().slice(0, 200);
+    retry.hidden = true;
+    results.hidden = true;
+    if (updateUrl) {
+      const url = new URL(window.location.href);
+      if (query) url.searchParams.set('q', query); else url.searchParams.delete('q');
+      history.replaceState(null, '', url);
+    }
+    if (!query) { status.textContent = '输入关键词，搜索全部笔记。'; return; }
+    status.textContent = '正在搜索…';
+    try {
+      indexPromise ??= fetch('/search-index.json').then((response) => {
+        if (!response.ok) throw new Error('Index unavailable');
+        return response.json() as Promise<SearchEntry[]>;
+      });
+      const entries = await indexPromise;
+      if (request !== sequence) return;
+      const matches = searchPosts(entries, query);
+      for (const item of items.values()) item.hidden = true;
+      for (const entry of matches) {
+        const item = items.get(entry.id);
+        if (!item) continue;
+        item.hidden = false;
+        highlight(item.querySelector('.post-title-link')!, entry.title, query);
+        highlight(item.querySelector('.post-description')!, excerpt(entry, query), query);
+        list?.append(item);
+      }
+      status.textContent = matches.length ? `找到 ${matches.length} 篇相关笔记` : '没有找到相关笔记，试试更短的关键词。';
+      results.hidden = matches.length === 0;
+    } catch {
+      indexPromise = undefined;
+      if (request !== sequence) return;
+      status.textContent = '搜索暂时无法加载，请重试。';
+      retry.hidden = false;
+    }
+  }
+  input.addEventListener('input', () => {
+    sequence++;
+    clearTimeout(timer);
+    timer = setTimeout(() => runSearch(), 180);
+  });
+  form.addEventListener('submit', (event) => { event.preventDefault(); clearTimeout(timer); runSearch(); });
+  retry.addEventListener('click', () => runSearch());
+  window.addEventListener('popstate', () => {
+    clearTimeout(timer);
+    input.value = new URLSearchParams(location.search).get('q')?.slice(0, 200) ?? '';
+    runSearch(false);
+  });
+  input.value = new URLSearchParams(location.search).get('q')?.slice(0, 200) ?? '';
+  runSearch(false);
+</script>

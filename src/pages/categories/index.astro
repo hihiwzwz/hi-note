@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { categories } from '../../site';
+import { getPosts } from '../../posts';
+const posts = await getPosts();
+const counts = new Map(categories.map((category) => [category.id, posts.filter((post) => post.data.category === category.id).length]));
+---
+<BaseLayout title="分类" description="按主题浏览 hiwz 的学习笔记。">
+  <section class="list-width page-section">
+    <h1 class="page-title">分类</h1>
+    <p class="page-intro mb-10">把零散的知识，慢慢连成线。</p>
+    <ul>
+      {categories.map((category) => <li><a class="category-row" href={`/categories/${category.id}/`}>
+        <div><h2 class="post-list-title post-title-link mb-3 font-bold">{category.name}</h2><p class="post-description">{category.description}</p></div>
+        <span class="muted shrink-0 pt-1 text-base">{counts.get(category.id)} 篇</span>
+      </a></li>)}
+    </ul>
+  </section>
+</BaseLayout>

@@ -1,0 +1,73 @@
+---
+import Icon from './Icon.astro';
+import { site } from '../site';
+const path = Astro.url.pathname;
+function active(href: string) {
+  if (href === '/') return path === '/' || path === '/index.html' || path.startsWith('/posts/');
+  return path.startsWith(href);
+}
+---
+<header class="site-header sticky top-0 z-40 border-b">
+  <div class="header-inner mx-auto flex max-w-6xl items-center justify-between px-3 py-2 md:px-4">
+    <a class="identity flex items-center gap-3" href="/" aria-label={`${site.name} 首页`}>
+      <img class="h-12 w-12 rounded-full object-cover md:h-16 md:w-16" src={site.avatar} width="64" height="64" alt="hiwz 的钢琴与鱼缸头像" fetchpriority="high" />
+      <span class="sr-only">{site.name}</span>
+    </a>
+    <div class="header-actions flex items-center">
+      <nav id="navigation" aria-label="主导航">
+        <ul class="flex items-center">
+          {site.navigation.map((item) => <li><a class="nav-link block px-4 py-3 text-base font-medium" href={item.href} aria-current={active(item.href) ? 'page' : undefined}>{item.label}</a></li>)}
+        </ul>
+      </nav>
+      <a class="icon-button" href="/search/" aria-label="搜索文章" title="搜索文章"><Icon name="search" /></a>
+      <button class="icon-button theme-toggle js-only" id="theme-toggle" type="button" aria-label="切换主题" title="切换主题">
+        <span class="theme-moon"><Icon name="moon" /></span><span class="theme-sun"><Icon name="sun" /></span>
+      </button>
+      <a class="icon-button rss-link" href="/rss.xml" aria-label="RSS 订阅" title="RSS 订阅"><Icon name="rss" /></a>
+      <button class="icon-button menu-toggle js-only" id="menu-toggle" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="navigation"><Icon name="menu" /></button>
+    </div>
+  </div>
+</header>
+<script>
+  const root = document.documentElement;
+  const themeButton = document.querySelector<HTMLButtonElement>('#theme-toggle');
+  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+  const labelTheme = () => {
+    const label = root.dataset.theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
+    themeButton?.setAttribute('aria-label', label);
+    themeButton?.setAttribute('title', label);
+  };
+  labelTheme();
+  themeButton?.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('hiwz-theme', root.dataset.theme); } catch { /* Storage can be disabled. */ }
+    labelTheme();
+  });
+  systemTheme.addEventListener('change', (event) => {
+    let saved: string | null = null;
+    try { saved = localStorage.getItem('hiwz-theme'); } catch { /* Use system theme without storage. */ }
+    if (saved !== 'light' && saved !== 'dark') {
+      root.dataset.theme = event.matches ? 'dark' : 'light';
+      labelTheme();
+    }
+  });
+  const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
+  const navigation = document.querySelector<HTMLElement>('#navigation');
+  const closeMenu = () => {
+    navigation?.classList.remove('is-open');
+    menuButton?.setAttribute('aria-expanded', 'false');
+    menuButton?.setAttribute('aria-label', '展开导航');
+  };
+  menuButton?.addEventListener('click', () => {
+    const open = menuButton.getAttribute('aria-expanded') !== 'true';
+    navigation?.classList.toggle('is-open', open);
+    menuButton.setAttribute('aria-expanded', String(open));
+    menuButton.setAttribute('aria-label', open ? '收起导航' : '展开导航');
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && menuButton?.getAttribute('aria-expanded') === 'true') {
+      closeMenu(); menuButton.focus();
+    }
+  });
+  window.matchMedia('(min-width: 768px)').addEventListener('change', closeMenu);
+</script>

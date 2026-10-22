@@ -1,0 +1,20 @@
+---
+import PostMeta from './PostMeta.astro';
+import { postUrl, type Post } from '../posts';
+interface Props { posts: Post[]; }
+const { posts } = Astro.props;
+---
+{posts.length ? <ul class="post-list m-0 list-none p-0">
+  {posts.map((post, index) => <li data-post-id={post.id} class="mb-10 last:mb-0 md:mb-24">
+    <article class:list={['post-item mx-auto grid max-w-md gap-6 md:max-w-none md:gap-8', post.data.cover && 'md:grid-cols-3']}>
+      {post.data.cover && <a href={postUrl(post)} class="post-cover block overflow-hidden rounded" tabindex="-1" aria-hidden="true">
+        <img src={post.data.cover} alt="" width={post.data.coverWidth} height={post.data.coverHeight} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" class="h-full w-full object-cover" />
+      </a>}
+      <div class:list={[post.data.cover && 'md:col-span-2', 'min-w-0 pb-4']}>
+        <h2 class="post-list-title mb-3 font-bold"><a class="post-title-link" href={postUrl(post)}>{post.data.title}</a></h2>
+        <p class="post-description mb-4">{post.data.description}</p>
+        <PostMeta post={post} />
+      </div>
+    </article>
+  </li>)}
+</ul> : <p class="muted py-8">这里还没有文章，过段时间再来看看。</p>}

@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import { getPosts } from '../posts';
+const posts = await getPosts();
+---
+<BaseLayout>
+  <section class="list-width home-feed" aria-labelledby="page-title">
+    <h1 class="sr-only" id="page-title">hiwz 的文章</h1>
+    <PostList posts={posts} />
+  </section>
+</BaseLayout>
